@@ -7,6 +7,10 @@ import { getTypeOrmConfig } from './database/postgres/typeorm.config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { getMongooseConfig } from './database/mongo/mongoose.config';
 import { MongooseModule } from '@nestjs/mongoose';
+import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
+import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
+import { TransformInterceptor } from './common/interceptors/transform.interceptor';
+import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 
 @Module({
   imports: [
@@ -25,6 +29,11 @@ import { MongooseModule } from '@nestjs/mongoose';
     }),
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    { provide: APP_FILTER, useClass: GlobalExceptionFilter },
+    { provide: APP_INTERCEPTOR, useClass: LoggingInterceptor },
+    { provide: APP_INTERCEPTOR, useClass: TransformInterceptor },
+  ],
 })
 export class AppModule {}
