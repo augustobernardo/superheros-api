@@ -1,0 +1,28 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: superheros_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: superheros
+      POSTGRES_PASSWORD: superheros_pass
+      POSTGRES_DB: superheros_db
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  mongo:
+    image: mongo:7-jammy
+    container_name: superheros_mongo
+    restart: unless-stopped
+    ports:
+      - '27017:27017'
+    volumes:
+      - mongo_data:/data/db
+
+volumes:
+  postgres_data:
+  mongo_data:
