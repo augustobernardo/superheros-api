@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
@@ -21,14 +25,23 @@ export class UsersService {
     if (!user) {
       throw new NotFoundException('User not found');
     }
+
     return user;
   }
 
   async update(userId: string, dto: UpdateUserDto): Promise<User> {
     const user = await this.findMe(userId);
 
-    Object.assign(user, dto);
+    if (dto.email && dto.email !== user.email) {
+      const emailInUse = await this.userRepository.findOne({
+        where: { email: dto.email },
+      });
+      if (emailInUse) {
+        throw new ConflictException('Email already in use');
+      }
+    }
 
+    Object.assign(user, dto);
     const updated = await this.userRepository.save(user);
 
     await this.loggingService.info('User updated', { userId });
@@ -36,12 +49,10 @@ export class UsersService {
     return updated;
   }
 
-  // Only ADMIN users can access these endpoints to list all users
   async findAll(): Promise<User[]> {
     return this.userRepository.find();
   }
 
-  // Only ADMIN users can access this endpoint to list all deleted users
   async findDeleted(): Promise<User[]> {
     return this.userRepository
       .createQueryBuilder('user')

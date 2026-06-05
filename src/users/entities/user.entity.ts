@@ -7,6 +7,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 
+import { Exclude } from 'class-transformer';
 import { UserRole } from '../enums/user-role.enum';
 
 @Entity('users')
@@ -23,6 +24,7 @@ export class User {
   @Column({ unique: true, length: 255 })
   email!: string;
 
+  @Exclude()
   @Column({ name: 'password_hash', length: 255 })
   passwordHash!: string;
 

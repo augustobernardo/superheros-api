@@ -32,14 +32,12 @@ export class UsersController {
     return this.authService.inactivate(user.id, user.jti);
   }
 
-  // Only ADMIN users can access these endpoints to list all users
   @Get()
   @Roles(UserRole.ADMIN)
   findAll() {
     return this.usersService.findAll();
   }
 
-  // Only ADMIN users can access this endpoint to list all deleted users
   @Get('deleted')
   @Roles(UserRole.ADMIN)
   findDeleted() {

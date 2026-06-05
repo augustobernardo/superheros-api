@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsUrl, Length, Matches } from 'class-validator';
+import { IsEmail, IsOptional, IsString, Length } from 'class-validator';
 
 export class UpdateUserDto {
   @IsOptional()
@@ -7,18 +7,20 @@ export class UpdateUserDto {
   name?: string;
 
   @IsOptional()
+  @IsEmail({}, { message: 'Invalid email format' })
+  email?: string;
+
+  @IsOptional()
   @IsString()
-  @Length(0, 500)
   bio?: string;
 
   @IsOptional()
-  @IsUrl({}, { message: 'photo_url must be a valid URL' })
+  @IsString()
+  @Length(1, 255)
   photoUrl?: string;
 
   @IsOptional()
   @IsString()
-  @Matches(/^\+?[\d\s\-().]{7,20}$/, {
-    message: 'Invalid phone format',
-  })
+  @Length(1, 20)
   phone?: string;
 }
