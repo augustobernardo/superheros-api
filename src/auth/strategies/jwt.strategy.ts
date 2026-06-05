@@ -8,17 +8,17 @@ import { RevokedToken } from '../entities/revoked-token.entity';
 import { User } from '../../users/entities/user.entity';
 
 export interface JwtPayload {
-  sub: string; // user ID (subject — RFC 7519)
-  jti: string; // unique token ID, used for revocation on logout
-  role: string; // user role (ADMIN, EDITOR, VIEWER)
-  iat?: number; // issued at — Unix timestamp in seconds (auto-set by JWT)
-  exp?: number; // expiration — Unix timestamp in seconds (auto-set by JWT)
+  sub: string; // User ID (subject — RFC 7519)
+  jti: string; // Unique token ID, used for revocation on logout
+  role: string; // User role (ADMIN, EDITOR, VIEWER)
+  iat?: number; // Issued at — Unix timestamp in seconds (auto-set by JWT)
+  exp?: number; // Expiration — Unix timestamp in seconds (auto-set by JWT)
 }
 
 export interface AuthenticatedUser {
-  id: string; // user ID extracted from JWT subject (sub)
-  jti: string; // token ID, used to revoke the current token on logout
-  role: string; // user role, used by RolesGuard for access control
+  id: string; // User ID extracted from JWT subject (sub)
+  jti: string; // Token ID, used to revoke the current token on logout
+  role: string; // User role, used by RolesGuard for access control
 }
 
 @Injectable()
