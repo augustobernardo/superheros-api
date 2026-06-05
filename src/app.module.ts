@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { AuthModule } from './auth/auth.module';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { LoggingModule } from './logging/logging.module';
@@ -30,6 +31,7 @@ import { validationSchema } from './config/env.validation';
       useFactory: getMongooseConfig,
     }),
     LoggingModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [
