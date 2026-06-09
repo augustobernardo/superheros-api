@@ -16,7 +16,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { PowersModule } from './powers/powers.module';
 import { ReportsModule } from './reports/reports.module';
 import { RolesGuard } from './common/guards/roles.guard';
-import { ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsersModule } from './users/users.module';
@@ -55,6 +55,7 @@ import { validationSchema } from './config/env.validation';
     { provide: APP_FILTER, useClass: GlobalExceptionFilter },
     { provide: APP_INTERCEPTOR, useClass: LoggingInterceptor },
     { provide: APP_INTERCEPTOR, useClass: TransformInterceptor },
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
   ],
