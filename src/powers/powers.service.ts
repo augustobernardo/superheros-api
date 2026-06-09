@@ -5,12 +5,13 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { Power } from './entities/power.entity';
 import { CreatePowerDto } from './dto/create-power.dto';
 import { UpdatePowerDto } from './dto/update-power.dto';
 import { HeroesService } from '../heroes/heroes.service';
 import { HeroStatus } from '../heroes/enums/hero-status.enum';
+import { UserRole } from '../users/enums/user-role.enum';
 import { LoggingService } from '../logging/logging.service';
 
 @Injectable()
@@ -35,11 +36,30 @@ export class PowersService {
 
     const existing = await this.powerRepository.findOne({
       where: { heroId, name: dto.name },
+      withDeleted: true,
     });
-    if (existing) {
+    if (existing && !existing.deletedAt) {
       throw new ConflictException(
         `Power "${dto.name}" already exists for this hero`,
       );
+    }
+
+    if (existing?.deletedAt) {
+      const refreshedHero = await this.heroesService.assertHeroExists(heroId);
+      if (refreshedHero.status === HeroStatus.ARCHIVED) {
+        throw new BadRequestException('Cannot add powers to an archived hero');
+      }
+
+      await this.powerRepository.restore(existing.id);
+      Object.assign(existing, dto);
+      const restored = await this.powerRepository.save(existing);
+      await this.loggingService.info('Power restored', {
+        userId,
+        heroId,
+        powerId: restored.id,
+        name: dto.name,
+      });
+      return restored;
     }
 
     const power = this.powerRepository.create({
@@ -60,8 +80,12 @@ export class PowersService {
     return saved;
   }
 
-  async findAll(heroId: string): Promise<Power[]> {
-    await this.heroesService.assertHeroExists(heroId);
+  async findAll(heroId: string, userRole?: string): Promise<Power[]> {
+    const hero = await this.heroesService.assertHeroExists(heroId);
+
+    if (userRole === UserRole.VIEWER && hero.status !== HeroStatus.PUBLISHED) {
+      throw new NotFoundException('Hero not found');
+    }
 
     return this.powerRepository.find({
       where: { heroId },
@@ -110,7 +134,12 @@ export class PowersService {
     id: string,
     userId: string,
   ): Promise<{ message: string }> {
-    await this.heroesService.assertHeroExists(heroId);
+    const hero = await this.heroesService.assertHeroExists(heroId);
+    if (hero.status === HeroStatus.ARCHIVED) {
+      throw new BadRequestException(
+        'Cannot remove powers from an archived hero',
+      );
+    }
     await this.assertPowerExists(id, heroId);
 
     await this.powerRepository.softDelete(id);
@@ -126,13 +155,14 @@ export class PowersService {
 
   async countActive(heroId: string): Promise<number> {
     return this.powerRepository.count({
-      where: { heroId },
+      where: { heroId, deletedAt: IsNull() },
     });
   }
 
   private async assertPowerExists(id: string, heroId: string): Promise<Power> {
     const power = await this.powerRepository.findOne({
       where: { id, heroId },
+      withDeleted: true,
     });
 
     if (!power) {
