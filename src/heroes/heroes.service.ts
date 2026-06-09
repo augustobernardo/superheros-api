@@ -14,6 +14,8 @@ import { UpdateHeroDto } from './dto/update-hero.dto';
 import { HeroStatus } from './enums/hero-status.enum';
 import { LoggingService } from '../logging/logging.service';
 import { UserRole } from '../users/enums/user-role.enum';
+import { Attribute } from '../attributes/entities/attribute.entity';
+import { Power } from '../powers/entities/power.entity';
 
 @Injectable()
 export class HeroesService {
@@ -25,6 +27,10 @@ export class HeroesService {
     @InjectRepository(Alignment)
     private readonly alignmentRepository: Repository<Alignment>,
     private readonly loggingService: LoggingService,
+    @InjectRepository(Attribute)
+    private readonly attributeRepository: Repository<Attribute>,
+    @InjectRepository(Power)
+    private readonly powerRepository: Repository<Power>,
   ) {}
 
   async create(dto: CreateHeroDto, userId: string): Promise<Hero> {
@@ -136,8 +142,24 @@ export class HeroesService {
       );
     }
 
-    // Get active attributes and powers - to be implemented when AttributesModule and PowersModule exist exist
-    // For now -> validate publisher and alignment
+    const attributeCount = await this.attributeRepository.count({
+      where: { heroId: id },
+    });
+    if (attributeCount < 3) {
+      throw new BadRequestException(
+        `Hero must have at least 3 attributes to be published (currently has ${attributeCount})`,
+      );
+    }
+
+    const powerCount = await this.powerRepository.count({
+      where: { heroId: id },
+    });
+    if (powerCount < 2) {
+      throw new BadRequestException(
+        `Hero must have at least 2 powers to be published (currently has ${powerCount})`,
+      );
+    }
+
     hero.status = HeroStatus.PUBLISHED;
     const updated = await this.heroRepository.save(hero);
 
