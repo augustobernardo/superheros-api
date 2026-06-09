@@ -4,7 +4,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
@@ -20,12 +20,6 @@ import { JwtPayload, AuthenticatedUser } from './strategies/jwt.strategy';
 export interface TokenPair {
   accessToken: string;
   refreshToken: string;
-}
-
-interface DecodedToken {
-  exp?: number; // Expiration time in seconds
-  sub?: string; // Subject (user ID)
-  jti?: string; // JWT ID (unique identifier for the token)
 }
 
 @Injectable()
@@ -85,7 +79,7 @@ export class AuthService {
   }
 
   async logout(userId: string, jti: string): Promise<{ message: string }> {
-    await this.revokeToken(jti, userId);
+    await this.revokeAllUserTokens(userId);
     await this.loggingService.info('User logged out', { userId });
 
     return { message: 'Logged out successfully' };
@@ -179,14 +173,17 @@ export class AuthService {
     );
   }
 
-  private async revokeToken(jti: string, userId: string): Promise<void> {
-    // Try to decode the token to get the real expiresAt
-    // if it fails, use 7 days as a fallback (max refresh token time)
-    const decoded = this.jwtService.decode<DecodedToken>(jti);
-    const expiresAt = decoded?.exp
-      ? new Date(decoded.exp * 1000)
-      : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  private async revokeAllUserTokens(userId: string): Promise<void> {
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    await this.revokedTokenRepository.save({
+      jti: uuidv4(),
+      userId,
+      expiresAt,
+    });
+  }
 
+  private async revokeToken(jti: string, userId: string): Promise<void> {
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
     await this.revokedTokenRepository.save({ jti, userId, expiresAt });
   }
 }

@@ -9,23 +9,31 @@ import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { Public } from '../common/decorators/public.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { JwtPayload, AuthenticatedUser } from './strategies/jwt.strategy';
+import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 
 interface AuthenticatedRequest extends Request {
   user?: AuthenticatedUser;
 }
 
+@ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Public()
   @Post('register')
+  @ApiOperation({ summary: 'Register a new user' })
+  @ApiResponse({ status: 201, description: 'User registered successfully' })
+  @ApiResponse({ status: 409, description: 'CPF or email already registered' })
   register(@Body() dto: RegisterDto) {
     return this.authService.register(dto);
   }
 
   @Public()
   @Post('login')
+  @ApiOperation({ summary: 'Login with CPF or email' })
+  @ApiResponse({ status: 200, description: 'Returns access + refresh tokens' })
+  @ApiResponse({ status: 401, description: 'Invalid credentials' })
   login(@Body() dto: LoginDto) {
     return this.authService.login(dto);
   }
@@ -33,11 +41,18 @@ export class AuthController {
   @Public()
   @UseGuards(AuthGuard('jwt-refresh'))
   @Post('refresh')
+  @ApiOperation({ summary: 'Refresh access token' })
+  @ApiResponse({ status: 200, description: 'Returns new access token' })
+  @ApiResponse({ status: 401, description: 'Invalid or revoked refresh token' })
   refresh(@Body() _dto: RefreshTokenDto, @CurrentUser() payload: JwtPayload) {
     return this.authService.refresh(payload);
   }
 
   @Get('validate')
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Validate current access token' })
+  @ApiResponse({ status: 200, description: 'Token is valid' })
+  @ApiResponse({ status: 401, description: 'Token is invalid or revoked' })
   validate(@Req() req: AuthenticatedRequest) {
     if (!req.user) {
       return { valid: false };
@@ -46,6 +61,10 @@ export class AuthController {
   }
 
   @Post('logout')
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Logout and revoke all tokens' })
+  @ApiResponse({ status: 200, description: 'Logged out successfully' })
+  @ApiResponse({ status: 401, description: 'Not authenticated' })
   logout(@Req() req: AuthenticatedRequest) {
     const user = req.user;
     if (!user) {
