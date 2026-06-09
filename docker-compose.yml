@@ -13,6 +13,8 @@ services:
       - '5432:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - superheros_network
 
   mongo:
     image: mongo:7-jammy
@@ -22,7 +24,40 @@ services:
       - '27017:27017'
     volumes:
       - mongo_data:/data/db
+    networks:
+      - superheros_network
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: superheros_api
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: superheros
+      DB_PASSWORD: superheros_pass
+      DB_DATABASE: superheros_db
+      MONGO_URI: mongodb://mongo:27017/superheros_logs
+      JWT_SECRET: ${JWT_SECRET:-change_me_in_production_jwt_secret_32chars}
+      JWT_EXPIRES_IN: 15m
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-change_me_in_production_refresh_secret_32chars}
+      JWT_REFRESH_EXPIRES_IN: 7d
+    depends_on:
+      - postgres
+      - mongo
+    networks:
+      - superheros_network
 
 volumes:
   postgres_data:
   mongo_data:
+
+networks:
+  superheros_network:
+    driver: bridge
