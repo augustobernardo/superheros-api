@@ -14,8 +14,12 @@ async function bootstrap() {
 
   app.use(helmet());
 
+  const allowedOrigins = isProduction
+    ? configService.get<string>('ALLOWED_ORIGINS', '').split(',').filter(Boolean)
+    : '*';
+
   app.enableCors({
-    origin: isProduction ? process.env.ALLOWED_ORIGINS?.split(',') : '*',
+    origin: allowedOrigins,
     methods: ['GET', 'POST', 'PATCH', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization'],
   });
@@ -28,6 +32,7 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
       transform: true,
       transformOptions: { enableImplicitConversion: true },
+      validationError: { target: false },
     }),
   );
 
@@ -51,6 +56,7 @@ async function bootstrap() {
       .addTag('Powers', 'CRUD de poderes do herói')
       .addTag('Reports', 'Relatório paginado de super-heróis')
       .addTag('Battles', 'Batalhas entre editoras')
+      .addTag('Health', 'Health check endpoint')
       .build();
 
     const document = SwaggerModule.createDocument(app, swaggerConfig);
