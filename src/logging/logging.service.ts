@@ -45,19 +45,23 @@ export class LoggingService {
     message: string,
     context?: LogContext,
   ): Promise<void> {
-    const { userId, method, path, statusCode, duration, stack, ...rest } =
-      context ?? {};
+    try {
+      const { userId, method, path, statusCode, duration, stack, ...rest } =
+        context ?? {};
 
-    await this.logModel.create({
-      level,
-      message,
-      userId,
-      method,
-      path,
-      statusCode,
-      duration,
-      stack,
-      context: Object.keys(rest).length > 0 ? rest : undefined,
-    });
+      await this.logModel.create({
+        level,
+        message,
+        userId,
+        method,
+        path,
+        statusCode,
+        duration,
+        stack,
+        context: Object.keys(rest).length > 0 ? rest : undefined,
+      });
+    } catch (err) {
+      console.error('Logging failed:', err);
+    }
   }
 }
