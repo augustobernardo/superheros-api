@@ -1,98 +1,375 @@
 <p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
+  <img src="https://img.shields.io/badge/NestJS-11-E0234E?logo=nestjs&style=for-the-badge" alt="NestJS 11" />
+  <img src="https://img.shields.io/badge/TypeScript-5.7-3178C6?logo=typescript&style=for-the-badge" alt="TypeScript 5.7" />
+  <img src="https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&style=for-the-badge" alt="PostgreSQL 16" />
+  <img src="https://img.shields.io/badge/MongoDB-7-47A248?logo=mongodb&style=for-the-badge" alt="MongoDB 7" />
+  <img src="https://img.shields.io/badge/TypeORM-1.0-fc3434?style=for-the-badge" alt="TypeORM 1.0" />
+  <img src="https://img.shields.io/badge/JWT-000000?logo=jsonwebtokens&style=for-the-badge" alt="JWT" />
+  <img src="https://img.shields.io/badge/Swagger-OpenAPI-85EA2D?logo=swagger&style=for-the-badge" alt="Swagger" />
+  <img src="https://img.shields.io/badge/Docker-2496ED?logo=docker&style=for-the-badge" alt="Docker" />
+  <img src="https://img.shields.io/badge/Node-22-339933?logo=nodedotjs&style=for-the-badge" alt="Node 22" />
+  <img src="https://img.shields.io/badge/Jest-30-C21325?logo=jest&style=for-the-badge" alt="Jest 30" />
+  <img src="https://img.shields.io/badge/license-UNLICENSED-lightgrey?style=for-the-badge" alt="License" />
 </p>
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+# Superheros API
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+API RESTful para gerenciamento de super-heróis com autenticação JWT, controle de acesso por perfil (RBAC), ciclo de vida de heróis, batalhas entre editoras e logging estruturado no MongoDB.
 
-## Description
+---
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Stack
 
-## Project setup
+| Categoria | Tecnologia | Versão |
+|-----------|-----------|--------|
+| **Runtime** | Node.js | 22 LTS |
+| **Linguagem** | TypeScript | 5.7 |
+| **Framework** | NestJS (Express) | 11 |
+| **ORM** | TypeORM | 1.0 |
+| **ODM (logs)** | Mongoose | 9 |
+| **Banco relacional** | PostgreSQL | 16 |
+| **Banco de logs** | MongoDB | 7 |
+| **Autenticação** | Passport + JWT | 0.7 / 4.0 |
+| **Hash de senhas** | bcrypt | 6 |
+| **Validação** | class-validator + class-transformer | 0.15 / 0.5 |
+| **Documentação** | Swagger / OpenAPI | 11 |
+| **Rate limiting** | @nestjs/throttler | 6 |
+| **Segurança** | Helmet | 8 |
+| **Testes** | Jest + Supertest + better-sqlite3 | 30 / 7 / 12 |
+| **Container** | Docker (multi-stage) | 24 (Alpine) |
+
+---
+
+## Funcionalidades
+
+### Autenticação e Usuários
+- Registro com validação de CPF (algoritmo de dígitos verificadores)
+- Login por CPF ou e-mail
+- JWT com access token (15min) + refresh token (7d)
+- Logout com revogação imediata de tokens
+- Perfil do usuário (CRUD) com soft delete
+- RBAC: **ADMIN**, **EDITOR**, **VIEWER**
+
+### Super-Heróis
+- Ciclo de vida completo: **DRAFT** → **PUBLISHED** → **ARCHIVED**
+- Publicação validada (exige editora + alinhamento + 3 atributos + 2 poderes)
+- CRUD completo com soft delete
+- Atributos numéricos (0-100) e poderes (com valor opcional)
+
+### Relatórios e Batalhas
+- Relatório paginado de heróis com filtros por atributo, poder, alinhamento e editora
+- Ordenação por soma de atributos ou poderes
+- Batalhas entre editoras com 3 níveis de resultado:
+  1. **Round**: cada atributo/poder em comum entre dois heróis
+  2. **Match**: herói A vs herói B (soma dos rounds)
+  3. **Publisher**: soma de todos os matches entre duas editoras
+
+### Infraestrutura
+- Soft delete em todas as entidades
+- Logging estruturado no MongoDB (requests, erros, eventos de negócio)
+- Rate limiting (100 requisições/minuto)
+- Cabeçalhos de segurança com Helmet
+- CORS configurável via ambiente
+- Respostas padronizadas: `{ success, data, timestamp }`
+- Erros padronizados: `{ statusCode, timestamp, path, method, message }`
+
+---
+
+## Pré-requisitos
+
+- **Node.js** 22+
+- **Docker** e **Docker Compose**
+- **npm**
+
+---
+
+## Configuração Local
+
+### 1. Clone o repositório
 
 ```bash
-$ npm install
+git clone <repo-url>
+cd superheros-api
 ```
 
-## Compile and run the project
+### 2. Configure as variáveis de ambiente
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+cp .env.example .env
 ```
 
-## Run tests
+Edite o arquivo `.env` conforme necessário. Os valores padrão funcionam com o Docker Compose.
+
+### 3. Suba os bancos de dados
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+docker-compose up -d postgres mongo
 ```
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+### 4. Instale as dependências
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+npm install
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+### 5. Execute as migrations
 
-## Resources
+```bash
+npm run migration:run
+```
 
-Check out a few resources that may come in handy when working with NestJS:
+### 6. Popule o banco com dados de exemplo
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+```bash
+npm run seed
+```
 
-## Support
+Saída esperada:
+```
+🌱 Starting seed...
+✅ Admin user created
+📚 Seeding publishers... ✅ 25 publishers
+📚 Seeding alignments... ✅ 4 alignments
+📚 Seeding heroes... ✅ 25 heroes (Marvel, DC, Dark Horse, etc.)
+📚 Seeding attributes... ✅ 125 attributes
+📚 Seeding powers... ✅ 50+ powers
+✨ Seed completed successfully!
+```
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+### 7. Inicie o servidor
 
-## Stay in touch
+```bash
+npm run start:dev
+```
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+Acesse:
+- API: `http://localhost:3000/api/v1`
+- Swagger: `http://localhost:3000/api/docs`
 
-## License
+---
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+## Deploy com Docker Compose
+
+```bash
+# Build e inicie todos os serviços
+docker-compose up -d --build
+
+# Execute as migrations
+docker-compose exec api npm run migration:run
+
+# Popule o banco
+docker-compose exec api npm run seed
+```
+
+---
+
+## Deploy em Nuvem
+
+### Railway
+
+1. Conecte o repositório GitHub ao Railway
+2. Adicione os serviços:
+   - PostgreSQL (Railway plugin)
+   - MongoDB (Railway plugin)
+   - Web service da API
+3. Configure as variáveis de ambiente no Railway
+4. O Railway executa `npm run build` automaticamente
+5. Configure o start command: `npm run start:prod`
+6. Adicione script `POSTBUILD`: `npm run migration:run && npm run seed`
+
+### Render
+
+1. Crie um Blueprint a partir do repositório
+2. Adicione os serviços PostgreSQL e MongoDB
+3. Configure as variáveis de ambiente
+4. Build command: `npm ci && npm run build`
+5. Start command: `npm run start:prod`
+
+---
+
+## Scripts Disponíveis
+
+| Comando | Descrição |
+|---------|-----------|
+| `npm run build` | Compila o projeto |
+| `npm run start:dev` | Inicia em modo dev com watch |
+| `npm run start:prod` | Inicia em modo produção |
+| `npm run lint` | Executa ESLint |
+| `npm test` | Testes unitários (54 testes) |
+| `npm run test:e2e` | Testes de integração (60+ testes) |
+| `npm run migration:run` | Executa migrations pendentes |
+| `npm run seed` | Popula o banco com dados de exemplo |
+
+---
+
+## Estrutura do Projeto
+
+```
+src/
+├── auth/              # Autenticação (JWT, register, login, logout, refresh)
+│   ├── strategies/    #   jwt.strategy.ts, jwt-refresh.strategy.ts
+│   ├── dto/           #   register.dto.ts, login.dto.ts, refresh-token.dto.ts
+│   └── entities/      #   revoked-token.entity.ts
+├── users/             # Gerenciamento de usuários (CRUD, perfis)
+│   ├── dto/           #   update-user.dto.ts
+│   ├── entities/      #   user.entity.ts
+│   └── enums/         #   user-role.enum.ts (ADMIN, EDITOR, VIEWER)
+├── heroes/            # CRUD de super-heróis e ciclo de vida
+│   ├── dto/           #   create-hero.dto.ts, update-hero.dto.ts
+│   ├── entities/      #   hero.entity.ts, publisher.entity.ts, alignment.entity.ts
+│   └── enums/         #   hero-status.enum.ts (DRAFT, PUBLISHED, ARCHIVED)
+├── attributes/        # CRUD de atributos dos heróis
+│   ├── dto/           #   create-attribute.dto.ts, update-attribute.dto.ts
+│   └── entities/      #   attribute.entity.ts
+├── powers/            # CRUD de poderes dos heróis
+│   ├── dto/           #   create-power.dto.ts, update-power.dto.ts
+│   └── entities/      #   power.entity.ts
+├── reports/           # Relatório paginado de heróis com filtros
+│   └── dto/           #   hero-report-filter.dto.ts
+├── battles/           # Batalhas entre editoras
+│   └── dto/           #   battle-query.dto.ts
+├── logging/           # Logging estruturado no MongoDB
+│   └── schemas/       #   log.schema.ts
+├── common/            # Compartilhado entre módulos
+│   ├── guards/        #   jwt-auth.guard.ts, roles.guard.ts
+│   ├── interceptors/  #   logging.interceptor.ts, transform.interceptor.ts
+│   ├── filters/       #   global-exception.filter.ts
+│   ├── decorators/    #   current-user.decorator.ts, roles.decorator.ts, public.decorator.ts
+│   ├── dto/           #   pagination.dto.ts
+│   └── validators/    #   is-cpf.validator.ts
+├── config/            # Validação de variáveis de ambiente (Joi)
+└── database/          # Conexões, migrations e seeds
+    ├── postgres/
+    │   ├── migrations/  #   InitialSchema, AddLastLogoutAt
+    │   └── seeds/       #   hero.seed.ts, user.seed.ts, run-seed.ts
+    └── mongo/           #   mongoose.config.ts
+```
+
+---
+
+## Testes
+
+O projeto utiliza **Jest** com **Supertest** para testes.
+
+### Unitários (54 testes — 8 suites)
+
+```bash
+npm test
+```
+
+| Suite | Testes |
+|-------|--------|
+| AuthService | register, login, logout, inactivate |
+| UsersService | findMe, update, findAll, findDeleted |
+| HeroesService | create, publish, archive, findOne |
+| AttributesService | create, findAll, update, remove |
+| PowersService | create, findAll, update, remove |
+| ReportsService | filters, sorting, pagination |
+| BattlesService | validation, rounds, draws |
+| AppController | health check |
+
+### Integração/E2E (60+ testes — 7 suites)
+
+```bash
+npm run test:e2e
+```
+
+Os testes E2E usam **better-sqlite3** em memória, eliminando a necessidade de PostgreSQL para testes.
+
+| Suite | Cobertura |
+|-------|-----------|
+| Auth | Register, login, validate, refresh, logout |
+| Users | Perfil, update, inativação, ADMIN listing |
+| Heroes | CRUD completo, publish, archive, soft delete |
+| Attributes | CRUD, validações, restauração |
+| Powers | CRUD, validações, restauração |
+| Reports | Filtros, ordenação, paginação |
+| Battles | Validação, rounds, resultado por publisher |
+
+---
+
+## Endpoints da API
+
+Todos os endpoints têm prefixo `/api/v1`.
+
+### Auth (públicos)
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| POST | `/auth/register` | Registro de novo usuário |
+| POST | `/auth/login` | Login (CPF ou email) |
+| POST | `/auth/refresh` | Renova access token |
+| GET | `/auth/validate` | Valida access token |
+| POST | `/auth/logout` | Revoga todos os tokens |
+
+### Users
+| Método | Rota | Perfis | Descrição |
+|--------|------|--------|-----------|
+| GET | `/users/me` | Todos | Perfil do usuário logado |
+| PATCH | `/users/me` | Todos | Atualiza perfil |
+| DELETE | `/users/me` | Todos | Inativa conta |
+| GET | `/users` | ADMIN | Lista usuários ativos |
+| GET | `/users/deleted` | ADMIN | Lista usuários deletados |
+
+### Heroes
+| Método | Rota | Perfis | Descrição |
+|--------|------|--------|-----------|
+| POST | `/heroes` | ADMIN, EDITOR | Cria herói como DRAFT |
+| GET | `/heroes` | Todos | Lista heróis (VIEWER: só PUBLISHED) |
+| GET | `/heroes/:id` | Todos | Detalhe do herói |
+| PATCH | `/heroes/:id` | ADMIN, EDITOR | Atualiza herói |
+| PATCH | `/heroes/:id/publish` | ADMIN, EDITOR | Publica herói |
+| PATCH | `/heroes/:id/archive` | ADMIN | Arquiva herói |
+| DELETE | `/heroes/:id` | ADMIN | Soft delete |
+| GET | `/heroes/deleted` | ADMIN | Lista heróis deletados |
+
+### Attributes
+| Método | Rota | Perfis | Descrição |
+|--------|------|--------|-----------|
+| POST | `/heroes/:heroId/attributes` | ADMIN, EDITOR | Cria atributo |
+| GET | `/heroes/:heroId/attributes` | Todos | Lista atributos |
+| PATCH | `/heroes/:heroId/attributes/:id` | ADMIN, EDITOR | Atualiza atributo |
+| DELETE | `/heroes/:heroId/attributes/:id` | ADMIN | Soft delete |
+
+### Powers
+| Método | Rota | Perfis | Descrição |
+|--------|------|--------|-----------|
+| POST | `/heroes/:heroId/powers` | ADMIN, EDITOR | Cria poder |
+| GET | `/heroes/:heroId/powers` | Todos | Lista poderes |
+| PATCH | `/heroes/:heroId/powers/:id` | ADMIN, EDITOR | Atualiza poder |
+| DELETE | `/heroes/:heroId/powers/:id` | ADMIN | Soft delete |
+
+### Reports
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| GET | `/reports/heroes?page=&limit=&orderBy=&order=&attribute=&power=&alignment=&publisher=` | Relatório paginado com filtros |
+
+### Battles
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| GET | `/battles?publisherAId=&publisherBId=&page=&limit=` | Batalha entre duas editoras |
+
+---
+
+## CI/CD
+
+O projeto possui pipelines de GitHub Actions que executam automaticamente em Pull Requests para a branch `main`:
+
+### CI (`ci.yml`)
+Executa em push para `main`/`develop` e PR para `main`:
+- Lint (ESLint)
+- Build
+- Testes unitários
+- Testes E2E (com PostgreSQL e MongoDB como serviços)
+
+### PR Checks (`run-tests.yml`)
+Executa exclusivamente em Pull Requests para `main`:
+- Lint
+- Build
+- Testes unitários
+- Testes E2E (com PostgreSQL e MongoDB como serviços)
+
+---
+
+## Licença
+
+UNLICENSED — Projeto privado.
