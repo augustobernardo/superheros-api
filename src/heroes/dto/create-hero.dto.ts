@@ -4,6 +4,7 @@ import {
   IsOptional,
   IsString,
   Length,
+  Min,
 } from 'class-validator';
 
 export class CreateHeroDto {
@@ -19,4 +20,19 @@ export class CreateHeroDto {
   @IsOptional()
   @IsInt()
   alignmentId?: number;
+
+  @IsOptional()
+  @IsString()
+  @Length(1, 255)
+  fullName?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  heightCm?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  weightKg?: number;
 }

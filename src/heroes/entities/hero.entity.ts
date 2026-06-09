@@ -38,6 +38,15 @@ export class Hero {
   @Column({ name: 'alignment_id', type: 'int', nullable: true })
   alignmentId!: number | null;
 
+  @Column({ name: 'full_name', type: 'varchar', length: 255, nullable: true })
+  fullName!: string | null;
+
+  @Column({ name: 'height_cm', type: 'int', nullable: true })
+  heightCm!: number | null;
+
+  @Column({ name: 'weight_kg', type: 'int', nullable: true })
+  weightKg!: number | null;
+
   @ManyToOne(() => Alignment, { nullable: true, eager: true })
   @JoinColumn({ name: 'alignment_id' })
   alignment!: Alignment | null;

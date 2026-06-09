@@ -1,4 +1,4 @@
-import { IsInt, IsOptional, IsString, Length } from 'class-validator';
+import { IsInt, IsOptional, IsString, Length, Min } from 'class-validator';
 
 export class UpdateHeroDto {
   @IsOptional()
@@ -13,4 +13,19 @@ export class UpdateHeroDto {
   @IsOptional()
   @IsInt()
   alignmentId?: number;
+
+  @IsOptional()
+  @IsString()
+  @Length(1, 255)
+  fullName?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  heightCm?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  weightKg?: number;
 }

@@ -28,8 +28,8 @@ export class Power {
   @Column({ length: 255 })
   name!: string;
 
-  @Column({ type: 'int' })
-  value!: number;
+  @Column({ type: 'int', nullable: true })
+  value!: number | null;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
