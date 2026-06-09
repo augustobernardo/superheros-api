@@ -1,17 +1,17 @@
-import { IsInt, IsNotEmpty, IsOptional, Max, Min } from 'class-validator';
+import { IsInt, IsOptional, IsPositive, Max, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class BattleQueryDto {
   @ApiProperty({ description: 'First publisher ID', example: 1 })
   @IsInt()
-  @IsNotEmpty()
+  @IsPositive()
   @Type(() => Number)
   publisherAId!: number;
 
   @ApiProperty({ description: 'Second publisher ID', example: 2 })
   @IsInt()
-  @IsNotEmpty()
+  @IsPositive()
   @Type(() => Number)
   publisherBId!: number;
 

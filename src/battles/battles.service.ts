@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Hero } from '../heroes/entities/hero.entity';
 import { Attribute } from '../attributes/entities/attribute.entity';
 import { Power } from '../powers/entities/power.entity';
@@ -60,12 +60,15 @@ export class BattlesService {
       throw new BadRequestException('Publishers must be different');
     }
 
+    const MAX_HEROES = 20;
+
     const heroesA = await this.heroRepository.find({
       where: {
         publisherId: publisherAId,
         status: HeroStatus.PUBLISHED,
       },
       relations: { publisher: true },
+      take: MAX_HEROES,
     });
 
     const heroesB = await this.heroRepository.find({
@@ -74,6 +77,7 @@ export class BattlesService {
         status: HeroStatus.PUBLISHED,
       },
       relations: { publisher: true },
+      take: MAX_HEROES,
     });
 
     if (heroesA.length === 0) {
@@ -93,19 +97,19 @@ export class BattlesService {
 
     const [attributesA, powersA] = await Promise.all([
       this.attributeRepository.find({
-        where: { heroId: heroIdsA as any },
+        where: { heroId: In(heroIdsA) },
       }),
       this.powerRepository.find({
-        where: { heroId: heroIdsA as any },
+        where: { heroId: In(heroIdsA) },
       }),
     ]);
 
     const [attributesB, powersB] = await Promise.all([
       this.attributeRepository.find({
-        where: { heroId: heroIdsB as any },
+        where: { heroId: In(heroIdsB) },
       }),
       this.powerRepository.find({
-        where: { heroId: heroIdsB as any },
+        where: { heroId: In(heroIdsB) },
       }),
     ]);
 
@@ -141,8 +145,10 @@ export class BattlesService {
     const skip = (page - 1) * limit;
     const paginatedMatches = allMatches.slice(skip, skip + limit);
 
-    const publisherA = heroesA[0].publisher?.name || `Publisher ${publisherAId}`;
-    const publisherB = heroesB[0].publisher?.name || `Publisher ${publisherBId}`;
+    const publisherA =
+      heroesA[0].publisher?.name || `Publisher ${publisherAId}`;
+    const publisherB =
+      heroesB[0].publisher?.name || `Publisher ${publisherBId}`;
 
     return {
       publisherA,
@@ -177,12 +183,16 @@ export class BattlesService {
 
     const commonAttrs = this.findCommon(attrsA, attrsB);
     for (const { itemA, itemB } of commonAttrs) {
-      rounds.push(this.resolveRound('attribute', itemA.name, itemA.value, itemB.value));
+      rounds.push(
+        this.resolveRound('attribute', itemA.name, itemA.value, itemB.value),
+      );
     }
 
     const commonPowers = this.findCommon(powersA, powersB);
     for (const { itemA, itemB } of commonPowers) {
-      rounds.push(this.resolveRound('power', itemA.name, itemA.value, itemB.value));
+      rounds.push(
+        this.resolveRound('power', itemA.name, itemA.value, itemB.value),
+      );
     }
 
     const heroAWins = rounds.filter((r) => r.winner === 'A').length;
@@ -211,14 +221,21 @@ export class BattlesService {
     valueA: number | null,
     valueB: number | null,
   ): BattleRound {
-    const a = valueA ?? 0;
-    const b = valueB ?? 0;
+    if (valueA === null || valueB === null) {
+      return {
+        category,
+        itemName,
+        valueA,
+        valueB,
+        winner: 'draw',
+      };
+    }
     return {
       category,
       itemName,
-      valueA: a,
-      valueB: b,
-      winner: a > b ? 'A' : b > a ? 'B' : 'draw',
+      valueA,
+      valueB,
+      winner: valueA > valueB ? 'A' : valueB > valueA ? 'B' : 'draw',
     };
   }
 
