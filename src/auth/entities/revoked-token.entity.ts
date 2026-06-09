@@ -2,6 +2,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
@@ -24,6 +25,7 @@ export class RevokedToken {
   @JoinColumn({ name: 'user_id' })
   user!: User;
 
+  @Index()
   @Column({ name: 'expires_at' })
   expiresAt!: Date;
 

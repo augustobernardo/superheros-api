@@ -3,6 +3,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { ConflictException, UnauthorizedException } from '@nestjs/common';
+import { DataSource } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 
 import { AuthService } from './auth.service';
@@ -35,6 +36,7 @@ describe('AuthService', () => {
       findOne: jest.fn(),
       create: jest.fn(),
       save: jest.fn(),
+      update: jest.fn(),
       softDelete: jest.fn(),
     };
 
@@ -47,10 +49,16 @@ describe('AuthService', () => {
       providers: [
         AuthService,
         { provide: getRepositoryToken(User), useValue: userRepository },
-        { provide: getRepositoryToken(RevokedToken), useValue: revokedTokenRepository },
+        {
+          provide: getRepositoryToken(RevokedToken),
+          useValue: revokedTokenRepository,
+        },
         {
           provide: JwtService,
-          useValue: { sign: jest.fn().mockReturnValue('mock-token'), decode: jest.fn() },
+          useValue: {
+            sign: jest.fn().mockReturnValue('mock-token'),
+            decode: jest.fn(),
+          },
         },
         {
           provide: ConfigService,
@@ -69,6 +77,19 @@ describe('AuthService', () => {
         {
           provide: LoggingService,
           useValue: { info: jest.fn(), warning: jest.fn(), error: jest.fn() },
+        },
+        {
+          provide: DataSource,
+          useValue: {
+            transaction: jest.fn().mockImplementation(async (cb) => {
+              const manager = {
+                findOne: userRepository.findOne,
+                create: userRepository.create,
+                save: userRepository.save,
+              };
+              return cb(manager);
+            }),
+          },
         },
       ],
     }).compile();
@@ -159,7 +180,10 @@ describe('AuthService', () => {
     });
 
     it('should throw UnauthorizedException when user is inactive', async () => {
-      userRepository.findOne.mockResolvedValue({ ...mockUser, isActive: false });
+      userRepository.findOne.mockResolvedValue({
+        ...mockUser,
+        isActive: false,
+      });
 
       await expect(
         service.login({
@@ -181,12 +205,18 @@ describe('AuthService', () => {
   });
 
   describe('inactivate', () => {
-    it('should soft delete user and revoke tokens', async () => {
+    it('should set isActive=false, update lastLogoutAt, soft delete, and revoke tokens', async () => {
       revokedTokenRepository.save.mockResolvedValue({});
+      userRepository.update.mockResolvedValue({});
       userRepository.softDelete.mockResolvedValue({});
 
       const result = await service.inactivate('user-1', 'jti-1');
 
+      expect(userRepository.update).toHaveBeenCalledWith('user-1', {
+        isActive: false,
+        lastLogoutAt: expect.any(Date),
+      });
+      expect(userRepository.softDelete).toHaveBeenCalledWith('user-1');
       expect(result).toEqual({ message: 'User inactivated successfully' });
     });
   });

@@ -6,13 +6,15 @@ import {
   Matches,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { IsCpf } from '../../common/validators/is-cpf.validator';
 
 export class RegisterDto {
-  @ApiProperty({ description: 'CPF (11 digits only)', example: '12345678901' })
+  @ApiProperty({ description: 'CPF (11 digits only)', example: '12345678909' })
   @IsString()
   @IsNotEmpty()
   @Length(11, 11, { message: 'CPF must have exactly 11 digits' })
   @Matches(/^\d{11}$/, { message: 'CPF must contain only digits' })
+  @IsCpf()
   cpf!: string;
 
   @ApiProperty({ description: 'Full name', example: 'John Doe' })

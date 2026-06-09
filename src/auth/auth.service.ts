@@ -4,12 +4,12 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
-import type { StringValue } from 'ms';
+import ms, { type StringValue } from 'ms';
 import { User } from '../users/entities/user.entity';
 import { RevokedToken } from './entities/revoked-token.entity';
 import { RegisterDto } from './dto/register.dto';
@@ -32,23 +32,37 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly loggingService: LoggingService,
+    private readonly dataSource: DataSource,
   ) {}
 
   async register(dto: RegisterDto): Promise<{ message: string }> {
-    await this.assertCpfNotTaken(dto.cpf);
-    await this.assertEmailNotTaken(dto.email);
-
     const passwordHash = await bcrypt.hash(dto.password, 12);
 
-    const user = this.userRepository.create({
-      cpf: dto.cpf,
-      name: dto.name,
-      email: dto.email,
-      passwordHash,
-    });
+    await this.dataSource.transaction(async (manager) => {
+      const existingCpf = await manager.findOne(User, {
+        where: { cpf: dto.cpf },
+      });
+      if (existingCpf) {
+        throw new ConflictException('CPF already registered');
+      }
 
-    await this.userRepository.save(user);
-    await this.loggingService.info('User registered', { userId: user.id });
+      const existingEmail = await manager.findOne(User, {
+        where: { email: dto.email },
+      });
+      if (existingEmail) {
+        throw new ConflictException('Email already registered');
+      }
+
+      const user = manager.create(User, {
+        cpf: dto.cpf,
+        name: dto.name,
+        email: dto.email,
+        passwordHash,
+      });
+
+      await manager.save(User, user);
+      await this.loggingService.info('User registered', { userId: user.id });
+    });
 
     return { message: 'User registered successfully' };
   }
@@ -79,13 +93,22 @@ export class AuthService {
   }
 
   async logout(userId: string, jti: string): Promise<{ message: string }> {
-    await this.revokeAllUserTokens(userId);
+    await this.revokeToken(jti, userId);
+    await this.userRepository.update(userId, { lastLogoutAt: new Date() });
     await this.loggingService.info('User logged out', { userId });
 
     return { message: 'Logged out successfully' };
   }
 
   async refresh(payload: JwtPayload): Promise<{ accessToken: string }> {
+    const revoked = await this.revokedTokenRepository.findOne({
+      where: { jti: payload.jti },
+    });
+
+    if (revoked) {
+      throw new UnauthorizedException('Refresh token has been revoked');
+    }
+
     const user = await this.userRepository.findOne({
       where: { id: payload.sub },
     });
@@ -96,21 +119,41 @@ export class AuthService {
 
     this.assertUserIsActive(user);
 
+    if (
+      user.lastLogoutAt &&
+      payload.iat !== undefined &&
+      payload.iat * 1000 < user.lastLogoutAt.getTime()
+    ) {
+      throw new UnauthorizedException('Refresh token has been revoked');
+    }
+
     const jti = uuidv4();
     const accessToken = this.generateAccessToken(user, jti);
 
     return { accessToken };
   }
 
-  validateToken(user: AuthenticatedUser): {
+  async validateToken(user: AuthenticatedUser): Promise<{
     valid: boolean;
     user: AuthenticatedUser;
-  } {
+  }> {
+    const dbUser = await this.userRepository.findOne({
+      where: { id: user.id },
+    });
+
+    if (!dbUser || !dbUser.isActive || dbUser.deletedAt) {
+      return { valid: false, user };
+    }
+
     return { valid: true, user };
   }
 
   async inactivate(userId: string, jti: string): Promise<{ message: string }> {
     await this.revokeToken(jti, userId);
+    await this.userRepository.update(userId, {
+      isActive: false,
+      lastLogoutAt: new Date(),
+    });
     await this.userRepository.softDelete(userId);
     await this.loggingService.warning('User inactivated', { userId });
 
@@ -173,17 +216,10 @@ export class AuthService {
     );
   }
 
-  private async revokeAllUserTokens(userId: string): Promise<void> {
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-    await this.revokedTokenRepository.save({
-      jti: uuidv4(),
-      userId,
-      expiresAt,
-    });
-  }
-
   private async revokeToken(jti: string, userId: string): Promise<void> {
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    const ttl = this.configService.get<string>('JWT_REFRESH_EXPIRES_IN', '7d');
+    const ttlMs = ms(ttl as StringValue);
+    const expiresAt = new Date(Date.now() + ttlMs);
     await this.revokedTokenRepository.save({ jti, userId, expiresAt });
   }
 }
