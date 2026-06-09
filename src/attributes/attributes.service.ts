@@ -5,12 +5,13 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { Attribute } from './entities/attribute.entity';
 import { CreateAttributeDto } from './dto/create-attribute.dto';
 import { UpdateAttributeDto } from './dto/update-attribute.dto';
 import { HeroesService } from '../heroes/heroes.service';
 import { HeroStatus } from '../heroes/enums/hero-status.enum';
+import { UserRole } from '../users/enums/user-role.enum';
 import { LoggingService } from '../logging/logging.service';
 
 @Injectable()
@@ -37,11 +38,32 @@ export class AttributesService {
 
     const existing = await this.attributeRepository.findOne({
       where: { heroId, name: dto.name },
+      withDeleted: true,
     });
-    if (existing) {
+    if (existing && !existing.deletedAt) {
       throw new ConflictException(
         `Attribute "${dto.name}" already exists for this hero`,
       );
+    }
+
+    if (existing?.deletedAt) {
+      const refreshedHero = await this.heroesService.assertHeroExists(heroId);
+      if (refreshedHero.status === HeroStatus.ARCHIVED) {
+        throw new BadRequestException(
+          'Cannot add attributes to an archived hero',
+        );
+      }
+
+      await this.attributeRepository.restore(existing.id);
+      Object.assign(existing, dto);
+      const restored = await this.attributeRepository.save(existing);
+      await this.loggingService.info('Attribute restored', {
+        userId,
+        heroId,
+        attributeId: restored.id,
+        name: dto.name,
+      });
+      return restored;
     }
 
     const attribute = this.attributeRepository.create({
@@ -62,8 +84,12 @@ export class AttributesService {
     return saved;
   }
 
-  async findAll(heroId: string): Promise<Attribute[]> {
-    await this.heroesService.assertHeroExists(heroId);
+  async findAll(heroId: string, userRole?: string): Promise<Attribute[]> {
+    const hero = await this.heroesService.assertHeroExists(heroId);
+
+    if (userRole === UserRole.VIEWER && hero.status !== HeroStatus.PUBLISHED) {
+      throw new NotFoundException('Hero not found');
+    }
 
     return this.attributeRepository.find({
       where: { heroId },
@@ -114,7 +140,12 @@ export class AttributesService {
     id: string,
     userId: string,
   ): Promise<{ message: string }> {
-    await this.heroesService.assertHeroExists(heroId);
+    const hero = await this.heroesService.assertHeroExists(heroId);
+    if (hero.status === HeroStatus.ARCHIVED) {
+      throw new BadRequestException(
+        'Cannot remove attributes from an archived hero',
+      );
+    }
     await this.assertAttributeExists(id, heroId);
 
     await this.attributeRepository.softDelete(id);
@@ -130,7 +161,7 @@ export class AttributesService {
 
   async countActive(heroId: string): Promise<number> {
     return this.attributeRepository.count({
-      where: { heroId },
+      where: { heroId, deletedAt: IsNull() },
     });
   }
 
@@ -140,6 +171,7 @@ export class AttributesService {
   ): Promise<Attribute> {
     const attribute = await this.attributeRepository.findOne({
       where: { id, heroId },
+      withDeleted: true,
     });
 
     if (!attribute) {
