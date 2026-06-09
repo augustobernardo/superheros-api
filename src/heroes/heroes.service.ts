@@ -143,7 +143,7 @@ export class HeroesService {
     }
 
     const attributeCount = await this.attributeRepository.count({
-      where: { heroId: id },
+      where: { heroId: id, deletedAt: null as unknown as undefined },
     });
     if (attributeCount < 3) {
       throw new BadRequestException(
@@ -152,7 +152,7 @@ export class HeroesService {
     }
 
     const powerCount = await this.powerRepository.count({
-      where: { heroId: id },
+      where: { heroId: id, deletedAt: null as unknown as undefined },
     });
     if (powerCount < 2) {
       throw new BadRequestException(
