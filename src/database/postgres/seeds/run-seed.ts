@@ -1,6 +1,7 @@
 import 'reflect-metadata';
 import dataSource from '../../data-source';
 import { runHeroSeed } from './hero.seed';
+import { runUserSeed } from './user.seed';
 
 async function runSeed() {
   try {
@@ -9,6 +10,7 @@ async function runSeed() {
       console.log('✅ Database connection established');
     }
 
+    await runUserSeed(dataSource);
     await runHeroSeed(dataSource);
 
     await dataSource.destroy();
