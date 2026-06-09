@@ -30,15 +30,19 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
   ) {
+    const secret = configService.get<string>('JWT_SECRET');
+    if (!secret) {
+      throw new Error('JWT_SECRET environment variable is not configured');
+    }
+
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: configService.get<string>('JWT_SECRET') ?? '',
+      secretOrKey: secret,
     });
   }
 
   async validate(payload: JwtPayload): Promise<AuthenticatedUser> {
-    // Verify if the token has been revoked (logout)
     const revoked = await this.revokedTokenRepository.findOne({
       where: { jti: payload.jti },
     });
@@ -47,15 +51,22 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       throw new UnauthorizedException('Token has been revoked');
     }
 
-    // Verifica se o usuário ainda está ativo
     const user = await this.userRepository.findOne({
       where: { id: payload.sub },
     });
 
-    if (!user || !user.isActive) {
+    if (!user || !user.isActive || user.deletedAt) {
       throw new UnauthorizedException('User is inactive or not found');
     }
 
-    return { id: payload.sub, jti: payload.jti, role: payload.role };
+    if (
+      user.lastLogoutAt &&
+      payload.iat !== undefined &&
+      payload.iat * 1000 < user.lastLogoutAt.getTime()
+    ) {
+      throw new UnauthorizedException('Token has been revoked');
+    }
+
+    return { id: payload.sub, jti: payload.jti, role: user.role };
   }
 }
