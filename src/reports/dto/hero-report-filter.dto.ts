@@ -1,4 +1,11 @@
-import { IsEnum, IsInt, IsOptional, IsPositive, IsString, Max } from 'class-validator';
+import {
+  IsEnum,
+  IsInt,
+  IsOptional,
+  IsPositive,
+  IsString,
+  Max,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -28,32 +35,52 @@ export class HeroReportFilterDto {
   @Max(100)
   limit?: number = 10;
 
-  @ApiPropertyOptional({ description: 'Sort by', enum: OrderBy, default: OrderBy.ATTRIBUTES })
+  @ApiPropertyOptional({
+    description: 'Sort by',
+    enum: OrderBy,
+    default: OrderBy.ATTRIBUTES,
+  })
   @IsOptional()
   @IsEnum(OrderBy)
   orderBy?: OrderBy = OrderBy.ATTRIBUTES;
 
-  @ApiPropertyOptional({ description: 'Sort direction', enum: Order, default: Order.ASC })
+  @ApiPropertyOptional({
+    description: 'Sort direction',
+    enum: Order,
+    default: Order.ASC,
+  })
   @IsOptional()
   @IsEnum(Order)
   order?: Order = Order.ASC;
 
-  @ApiPropertyOptional({ description: 'Filter by attribute name', example: 'Strength' })
+  @ApiPropertyOptional({
+    description: 'Filter by attribute name',
+    example: 'Strength',
+  })
   @IsOptional()
   @IsString()
   attribute?: string;
 
-  @ApiPropertyOptional({ description: 'Filter by power name', example: 'Flight' })
+  @ApiPropertyOptional({
+    description: 'Filter by power name',
+    example: 'Flight',
+  })
   @IsOptional()
   @IsString()
   power?: string;
 
-  @ApiPropertyOptional({ description: 'Filter by alignment name', example: 'Good' })
+  @ApiPropertyOptional({
+    description: 'Filter by alignment name',
+    example: 'Good',
+  })
   @IsOptional()
   @IsString()
   alignment?: string;
 
-  @ApiPropertyOptional({ description: 'Filter by publisher name', example: 'Marvel' })
+  @ApiPropertyOptional({
+    description: 'Filter by publisher name',
+    example: 'Marvel',
+  })
   @IsOptional()
   @IsString()
   publisher?: string;

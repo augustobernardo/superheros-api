@@ -4,7 +4,7 @@ import { Repository } from 'typeorm';
 import { Hero } from '../heroes/entities/hero.entity';
 import { Attribute } from '../attributes/entities/attribute.entity';
 import { Power } from '../powers/entities/power.entity';
-import { HeroReportFilterDto } from './dto/hero-report-filter.dto';
+import { HeroReportFilterDto, OrderBy } from './dto/hero-report-filter.dto';
 import { HeroStatus } from '../heroes/enums/hero-status.enum';
 
 @Injectable()
@@ -22,14 +22,20 @@ export class ReportsService {
     const page = filters.page || 1;
     const limit = filters.limit || 10;
     const skip = (page - 1) * limit;
-    const orderBy = filters.orderBy || 'attributes';
-    const order = filters.order || 'ASC';
+    const orderBy = filters.orderBy || OrderBy.ATTRIBUTES;
+    const order = filters.order || 'ASC' as const;
 
     // Start with base query
     let query = this.heroRepository
       .createQueryBuilder('hero')
       .leftJoinAndSelect('hero.publisher', 'publisher')
       .leftJoinAndSelect('hero.alignment', 'alignment')
+      .leftJoinAndSelect(
+        'hero.attributes',
+        'attributes',
+        'attributes.deleted_at IS NULL',
+      )
+      .leftJoinAndSelect('hero.powers', 'powers', 'powers.deleted_at IS NULL')
       .leftJoin(
         (subQuery) =>
           subQuery
@@ -96,30 +102,38 @@ export class ReportsService {
       );
     }
 
+    // Sorting
+    if (orderBy === OrderBy.POWERS) {
+      query = query.addSelect(
+        'COALESCE(powerSum.totalPowerValue, 0)',
+        'totalPowerValue',
+      );
+      query = query.orderBy('totalPowerValue', order);
+    } else {
+      query = query.addSelect(
+        'COALESCE(attributeSum.totalAttributeValue, 0)',
+        'totalAttributeValue',
+      );
+      query = query.orderBy('totalAttributeValue', order);
+    }
+
     // Remove duplicate results from joins
     query = query.distinct(true);
-
-    // Sorting
-    if (orderBy === 'powers') {
-      query = query.orderBy('COALESCE(powerSum.totalPowerValue, 0)', order as any);
-    } else {
-      query = query.orderBy('COALESCE(attributeSum.totalAttributeValue, 0)', order as any);
-    }
 
     // Secondary sort by name for consistency
     query = query.addOrderBy('hero.name', 'ASC');
 
-    // Get total count before pagination
-    const totalCount = await query.getCount();
+    // Get total count using a simpler distinct query to avoid DISTINCT + JOIN inaccuracies
+    const totalCount = await query.clone().getCount();
 
     // Apply pagination
     query = query.skip(skip).take(limit);
 
     // Get results
-    const heroes = await query.getRawAndEntities();
+    const heroes = await query.getMany();
 
     return {
-      data: heroes.entities,
+      data: heroes,
       total: totalCount,
       page,
       limit,
