@@ -29,7 +29,7 @@ export class User {
   passwordHash!: string;
 
   @Column({
-    type: 'enum',
+    type: 'simple-enum',
     enum: UserRole,
     default: UserRole.VIEWER,
   })
@@ -46,6 +46,9 @@ export class User {
 
   @Column({ name: 'is_active', default: true })
   isActive!: boolean;
+
+  @Column({ name: 'last_logout_at', type: 'timestamp with time zone', nullable: true })
+  lastLogoutAt!: Date | null;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;

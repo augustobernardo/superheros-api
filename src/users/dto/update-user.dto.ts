@@ -8,17 +8,20 @@ export class UpdateUserDto {
   @Length(2, 255)
   name?: string;
 
-  @ApiPropertyOptional({ description: 'Email address', example: 'john@example.com' })
+  @ApiPropertyOptional({
+    description: 'Email address',
+    example: 'john@example.com',
+  })
   @IsOptional()
   @IsEmail({}, { message: 'Invalid email format' })
   email?: string;
 
-  @ApiPropertyOptional({ description: 'User biography' })
+  @ApiPropertyOptional({ description: 'User biography', example: 'Software developer and superhero enthusiast' })
   @IsOptional()
   @IsString()
   bio?: string;
 
-  @ApiPropertyOptional({ description: 'Profile photo URL' })
+  @ApiPropertyOptional({ description: 'Profile photo URL', example: 'https://example.com/photo.jpg' })
   @IsOptional()
   @IsString()
   @Length(1, 255)

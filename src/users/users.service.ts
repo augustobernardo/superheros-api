@@ -20,6 +20,18 @@ export class UsersService {
   async findMe(userId: string): Promise<User> {
     const user = await this.userRepository.findOne({
       where: { id: userId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        cpf: true,
+        role: true,
+        bio: true,
+        photoUrl: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+      },
     });
 
     if (!user) {
@@ -41,7 +53,12 @@ export class UsersService {
       }
     }
 
-    Object.assign(user, dto);
+    if (dto.name !== undefined) user.name = dto.name;
+    if (dto.email !== undefined) user.email = dto.email;
+    if (dto.bio !== undefined) user.bio = dto.bio;
+    if (dto.photoUrl !== undefined) user.photoUrl = dto.photoUrl;
+    if (dto.phone !== undefined) user.phone = dto.phone;
+
     const updated = await this.userRepository.save(user);
 
     await this.loggingService.info('User updated', { userId });
@@ -50,7 +67,20 @@ export class UsersService {
   }
 
   async findAll(): Promise<User[]> {
-    return this.userRepository.find();
+    return this.userRepository.find({
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        cpf: true,
+        role: true,
+        bio: true,
+        photoUrl: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
   }
 
   async findDeleted(): Promise<User[]> {
@@ -58,6 +88,19 @@ export class UsersService {
       .createQueryBuilder('user')
       .withDeleted()
       .where('user.deleted_at IS NOT NULL')
+      .select([
+        'user.id',
+        'user.name',
+        'user.email',
+        'user.cpf',
+        'user.role',
+        'user.bio',
+        'user.photoUrl',
+        'user.isActive',
+        'user.createdAt',
+        'user.updatedAt',
+        'user.deletedAt',
+      ])
       .getMany();
   }
 }
