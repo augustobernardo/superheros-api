@@ -1,6 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { ConflictException, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 
 import { HeroesService } from './heroes.service';
 import { Hero } from './entities/hero.entity';
@@ -18,6 +22,7 @@ describe('HeroesService', () => {
   let alignmentRepository: Record<string, jest.Mock>;
   let attributeRepository: Record<string, jest.Mock>;
   let powerRepository: Record<string, jest.Mock>;
+  let mockManager: Record<string, jest.Mock>;
 
   const mockHero = {
     id: 'hero-1',
@@ -29,12 +34,23 @@ describe('HeroesService', () => {
   };
 
   beforeEach(async () => {
+    mockManager = {
+      findOne: jest.fn(),
+      count: jest.fn(),
+      save: jest.fn(),
+    };
+
     heroRepository = {
       findOne: jest.fn(),
       create: jest.fn(),
       save: jest.fn(),
       softDelete: jest.fn(),
       createQueryBuilder: jest.fn(),
+      manager: {
+        transaction: jest
+          .fn()
+          .mockImplementation(async (cb) => cb(mockManager)),
+      },
     };
 
     publisherRepository = { findOne: jest.fn() };
@@ -46,11 +62,23 @@ describe('HeroesService', () => {
       providers: [
         HeroesService,
         { provide: getRepositoryToken(Hero), useValue: heroRepository },
-        { provide: getRepositoryToken(Publisher), useValue: publisherRepository },
-        { provide: getRepositoryToken(Alignment), useValue: alignmentRepository },
-        { provide: getRepositoryToken(Attribute), useValue: attributeRepository },
+        {
+          provide: getRepositoryToken(Publisher),
+          useValue: publisherRepository,
+        },
+        {
+          provide: getRepositoryToken(Alignment),
+          useValue: alignmentRepository,
+        },
+        {
+          provide: getRepositoryToken(Attribute),
+          useValue: attributeRepository,
+        },
         { provide: getRepositoryToken(Power), useValue: powerRepository },
-        { provide: LoggingService, useValue: { info: jest.fn(), warning: jest.fn(), error: jest.fn() } },
+        {
+          provide: LoggingService,
+          useValue: { info: jest.fn(), warning: jest.fn(), error: jest.fn() },
+        },
       ],
     }).compile();
 
@@ -89,14 +117,17 @@ describe('HeroesService', () => {
 
   describe('publish', () => {
     it('should publish a hero with valid requirements', async () => {
-      heroRepository.findOne.mockResolvedValueOnce({
+      mockManager.findOne.mockResolvedValueOnce({
         ...mockHero,
         publisherId: 1,
         alignmentId: 1,
       });
-      attributeRepository.count.mockResolvedValue(3);
-      powerRepository.count.mockResolvedValue(2);
-      heroRepository.save.mockResolvedValue({ ...mockHero, status: HeroStatus.PUBLISHED });
+      mockManager.count.mockResolvedValueOnce(3);
+      mockManager.count.mockResolvedValueOnce(2);
+      mockManager.save.mockResolvedValue({
+        ...mockHero,
+        status: HeroStatus.PUBLISHED,
+      });
 
       const result = await service.publish('hero-1', 'user-1');
 
@@ -104,7 +135,10 @@ describe('HeroesService', () => {
     });
 
     it('should throw BadRequestException when hero has no publisher', async () => {
-      heroRepository.findOne.mockResolvedValueOnce({ ...mockHero, publisherId: null });
+      mockManager.findOne.mockResolvedValueOnce({
+        ...mockHero,
+        publisherId: null,
+      });
 
       await expect(service.publish('hero-1', 'user-1')).rejects.toThrow(
         BadRequestException,
@@ -112,13 +146,13 @@ describe('HeroesService', () => {
     });
 
     it('should throw BadRequestException when hero has fewer than 3 attributes', async () => {
-      heroRepository.findOne.mockResolvedValueOnce({
+      mockManager.findOne.mockResolvedValueOnce({
         ...mockHero,
         publisherId: 1,
         alignmentId: 1,
       });
-      attributeRepository.count.mockResolvedValue(2);
-      powerRepository.count.mockResolvedValue(2);
+      mockManager.count.mockResolvedValueOnce(2);
+      mockManager.count.mockResolvedValueOnce(2);
 
       await expect(service.publish('hero-1', 'user-1')).rejects.toThrow(
         BadRequestException,
@@ -126,13 +160,13 @@ describe('HeroesService', () => {
     });
 
     it('should throw BadRequestException when hero has fewer than 2 powers', async () => {
-      heroRepository.findOne.mockResolvedValueOnce({
+      mockManager.findOne.mockResolvedValueOnce({
         ...mockHero,
         publisherId: 1,
         alignmentId: 1,
       });
-      attributeRepository.count.mockResolvedValue(3);
-      powerRepository.count.mockResolvedValue(1);
+      mockManager.count.mockResolvedValueOnce(3);
+      mockManager.count.mockResolvedValueOnce(1);
 
       await expect(service.publish('hero-1', 'user-1')).rejects.toThrow(
         BadRequestException,
@@ -143,7 +177,10 @@ describe('HeroesService', () => {
   describe('archive', () => {
     it('should archive a hero', async () => {
       heroRepository.findOne.mockResolvedValueOnce(mockHero);
-      heroRepository.save.mockResolvedValue({ ...mockHero, status: HeroStatus.ARCHIVED });
+      heroRepository.save.mockResolvedValue({
+        ...mockHero,
+        status: HeroStatus.ARCHIVED,
+      });
 
       const result = await service.archive('hero-1', 'user-1');
 

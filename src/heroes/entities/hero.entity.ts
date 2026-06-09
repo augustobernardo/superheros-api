@@ -18,11 +18,11 @@ export class Hero {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Column({ length: 255 })
+  @Column({ unique: true, length: 255 })
   name!: string;
 
   @Column({
-    type: 'enum',
+    type: 'simple-enum',
     enum: HeroStatus,
     default: HeroStatus.DRAFT,
   })
@@ -31,7 +31,7 @@ export class Hero {
   @Column({ name: 'publisher_id', type: 'int', nullable: true })
   publisherId!: number | null;
 
-  @ManyToOne(() => Publisher, { nullable: true, eager: true })
+  @ManyToOne(() => Publisher, { nullable: true })
   @JoinColumn({ name: 'publisher_id' })
   publisher!: Publisher | null;
 
@@ -47,7 +47,7 @@ export class Hero {
   @Column({ name: 'weight_kg', type: 'int', nullable: true })
   weightKg!: number | null;
 
-  @ManyToOne(() => Alignment, { nullable: true, eager: true })
+  @ManyToOne(() => Alignment, { nullable: true })
   @JoinColumn({ name: 'alignment_id' })
   alignment!: Alignment | null;
 

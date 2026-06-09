@@ -1,4 +1,12 @@
-import { IsInt, IsOptional, IsString, Length, Min } from 'class-validator';
+import {
+  IsInt,
+  IsOptional,
+  IsPositive,
+  IsString,
+  Length,
+  Max,
+  Min,
+} from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class UpdateHeroDto {
@@ -11,11 +19,13 @@ export class UpdateHeroDto {
   @ApiPropertyOptional({ description: 'Publisher ID', example: 1 })
   @IsOptional()
   @IsInt()
+  @IsPositive()
   publisherId?: number;
 
   @ApiPropertyOptional({ description: 'Alignment ID', example: 1 })
   @IsOptional()
   @IsInt()
+  @IsPositive()
   alignmentId?: number;
 
   @ApiPropertyOptional({ description: 'Full name', example: 'Tony Stark' })
@@ -28,11 +38,13 @@ export class UpdateHeroDto {
   @IsOptional()
   @IsInt()
   @Min(0)
+  @Max(300)
   heightCm?: number;
 
   @ApiPropertyOptional({ description: 'Weight in kg', example: 85 })
   @IsOptional()
   @IsInt()
   @Min(0)
+  @Max(500)
   weightKg?: number;
 }

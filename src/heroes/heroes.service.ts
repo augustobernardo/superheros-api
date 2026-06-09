@@ -5,7 +5,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { Hero } from './entities/hero.entity';
 import { Publisher } from './entities/publisher.entity';
 import { Alignment } from './entities/alignment.entity';
@@ -64,13 +64,21 @@ export class HeroesService {
       heroName: saved.name,
     });
 
-    return this.heroRepository.findOne({
-      where: { id: saved.id },
-      relations: {
-        publisher: true,
-        alignment: true,
-      },
-    }) as Promise<Hero>;
+    return this.loadRelations(saved);
+  }
+
+  private async loadRelations(hero: Hero): Promise<Hero> {
+    if (hero.publisherId && !hero.publisher) {
+      hero.publisher = await this.publisherRepository.findOne({
+        where: { id: hero.publisherId },
+      });
+    }
+    if (hero.alignmentId && !hero.alignment) {
+      hero.alignment = await this.alignmentRepository.findOne({
+        where: { id: hero.alignmentId },
+      });
+    }
+    return hero;
   }
 
   async findAll(userRole: string): Promise<Hero[]> {
@@ -118,6 +126,15 @@ export class HeroesService {
       await this.assertAlignmentExists(dto.alignmentId);
     }
 
+    if (dto.name && dto.name !== hero.name) {
+      const existing = await this.heroRepository.findOne({
+        where: { name: dto.name },
+      });
+      if (existing) {
+        throw new ConflictException('Hero with this name already exists');
+      }
+    }
+
     Object.assign(hero, dto);
     const updated = await this.heroRepository.save(hero);
 
@@ -127,45 +144,57 @@ export class HeroesService {
   }
 
   async publish(id: string, userId: string): Promise<Hero> {
-    const hero = await this.assertHeroExists(id);
-    this.assertNotArchived(hero);
+    return this.heroRepository.manager.transaction(async (manager) => {
+      const hero = await manager.findOne(Hero, {
+        where: { id },
+        lock: { mode: 'pessimistic_write' },
+      });
 
-    if (!hero.publisherId) {
-      throw new BadRequestException(
-        'Hero must have a publisher to be published',
-      );
-    }
+      if (!hero) {
+        throw new NotFoundException('Hero not found');
+      }
 
-    if (!hero.alignmentId) {
-      throw new BadRequestException(
-        'Hero must have an alignment to be published',
-      );
-    }
+      if (hero.status === HeroStatus.ARCHIVED) {
+        throw new BadRequestException('Archived heroes cannot be modified');
+      }
 
-    const attributeCount = await this.attributeRepository.count({
-      where: { heroId: id, deletedAt: null as unknown as undefined },
+      if (!hero.publisherId) {
+        throw new BadRequestException(
+          'Hero must have a publisher to be published',
+        );
+      }
+
+      if (!hero.alignmentId) {
+        throw new BadRequestException(
+          'Hero must have an alignment to be published',
+        );
+      }
+
+      const attributeCount = await manager.count(Attribute, {
+        where: { heroId: id, deletedAt: IsNull() },
+      });
+      if (attributeCount < 3) {
+        throw new BadRequestException(
+          `Hero must have at least 3 attributes to be published (currently has ${attributeCount})`,
+        );
+      }
+
+      const powerCount = await manager.count(Power, {
+        where: { heroId: id, deletedAt: IsNull() },
+      });
+      if (powerCount < 2) {
+        throw new BadRequestException(
+          `Hero must have at least 2 powers to be published (currently has ${powerCount})`,
+        );
+      }
+
+      hero.status = HeroStatus.PUBLISHED;
+      const updated = await manager.save(Hero, hero);
+
+      await this.loggingService.info('Hero published', { userId, heroId: id });
+
+      return updated;
     });
-    if (attributeCount < 3) {
-      throw new BadRequestException(
-        `Hero must have at least 3 attributes to be published (currently has ${attributeCount})`,
-      );
-    }
-
-    const powerCount = await this.powerRepository.count({
-      where: { heroId: id, deletedAt: null as unknown as undefined },
-    });
-    if (powerCount < 2) {
-      throw new BadRequestException(
-        `Hero must have at least 2 powers to be published (currently has ${powerCount})`,
-      );
-    }
-
-    hero.status = HeroStatus.PUBLISHED;
-    const updated = await this.heroRepository.save(hero);
-
-    await this.loggingService.info('Hero published', { userId, heroId: id });
-
-    return updated;
   }
 
   async archive(id: string, userId: string): Promise<Hero> {
@@ -209,6 +238,10 @@ export class HeroesService {
   private assertNotArchived(hero: Hero): void {
     if (hero.status === HeroStatus.ARCHIVED) {
       throw new BadRequestException('Archived heroes cannot be modified');
+    }
+
+    if (hero.deletedAt) {
+      throw new BadRequestException('Deleted heroes cannot be modified');
     }
   }
 
