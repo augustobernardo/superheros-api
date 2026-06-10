@@ -22,7 +22,10 @@
     "migration:generate": "npm run typeorm -- migration:generate src/database/postgres/migrations/$npm_config_name",
     "migration:run": "npm run typeorm -- migration:run",
     "migration:revert": "npm run typeorm -- migration:revert",
-    "seed": "ts-node src/database/postgres/seeds/run-seed.ts"
+    "seed": "ts-node src/database/postgres/seeds/run-seed.ts",
+    "typeorm:prod": "typeorm -d dist/database/data-source.js",
+    "migration:run:prod": "npm run typeorm:prod -- migration:run",
+    "seed:prod": "node dist/database/postgres/seeds/run-seed"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
