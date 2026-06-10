@@ -8,10 +8,16 @@ export async function runUserSeed(dataSource: DataSource): Promise<void> {
 
   const existingAdmin = await userRepository.findOne({
     where: { cpf: '00000000000' },
+    withDeleted: true,
   });
 
   if (existingAdmin) {
-    console.log('⏭️  Admin user already exists');
+    if (existingAdmin.deletedAt) {
+      await userRepository.restore(existingAdmin.id);
+      console.log('♻️  Admin user restored (was soft-deleted)');
+    } else {
+      console.log('⏭️  Admin user already exists');
+    }
     return;
   }
 
