@@ -49,7 +49,7 @@ export class User {
 
   @Column({
     name: 'last_logout_at',
-    type: 'timestamp with time zone',
+    type: 'datetime',
     nullable: true,
   })
   lastLogoutAt!: Date | null;

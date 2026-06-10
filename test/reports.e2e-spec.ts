@@ -124,7 +124,7 @@ describe('ReportsModule (e2e)', () => {
 
     const res = await request(app.getHttpServer())
       .get('/api/v1/reports/heroes')
-      .query({ orderBy: 'powers', order: 'DESC' })
+      .query({ orderBy: 'powers', orderDirection: 'DESC' })
       .set('Authorization', `Bearer ${viewer.accessToken}`)
       .expect(200);
 
