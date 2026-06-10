@@ -7,7 +7,7 @@ import {
   Max,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export enum OrderBy {
   ATTRIBUTES = 'attributes',
