@@ -36,7 +36,9 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const message = this.resolveMessage(exception);
 
     if (exception instanceof Error) {
-      console.error(`[GlobalExceptionFilter] ${request.method} ${request.url} - ${status}`);
+      console.error(
+        `[GlobalExceptionFilter] ${request.method} ${request.url} - ${status}`,
+      );
       console.error(exception.stack || exception.message);
     }
 

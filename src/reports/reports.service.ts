@@ -23,7 +23,7 @@ export class ReportsService {
     const limit = filters.limit || 10;
     const skip = (page - 1) * limit;
     const orderBy = filters.orderBy || OrderBy.ATTRIBUTES;
-    const order = filters.orderDirection || 'ASC' as const;
+    const order = filters.orderDirection || ('ASC' as const);
 
     // Build a dedicated count query (lightweight — no leftJoinAndSelect, no subquery joins)
     const countQuery = this.heroRepository
@@ -42,7 +42,11 @@ export class ReportsService {
       .createQueryBuilder('hero')
       .leftJoinAndSelect('hero.publisher', 'publisher')
       .leftJoinAndSelect('hero.alignment', 'alignment')
-      .leftJoinAndSelect('hero.attributes', 'attributes', 'attributes.deleted_at IS NULL')
+      .leftJoinAndSelect(
+        'hero.attributes',
+        'attributes',
+        'attributes.deleted_at IS NULL',
+      )
       .leftJoinAndSelect('hero.powers', 'powers', 'powers.deleted_at IS NULL')
       .leftJoin(
         (subQuery) =>
