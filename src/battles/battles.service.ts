@@ -80,15 +80,16 @@ export class BattlesService {
       take: MAX_HEROES,
     });
 
-    if (heroesA.length === 0 || heroesB.length === 0) {
-      const publisherA =
-        heroesA.length > 0
-          ? heroesA[0].publisher?.name || `Publisher ${publisherAId}`
-          : `Publisher ${publisherAId}`;
-      const publisherB =
-        heroesB.length > 0
-          ? heroesB[0].publisher?.name || `Publisher ${publisherBId}`
-          : `Publisher ${publisherBId}`;
+    const hasHeroesA = heroesA?.length > 0;
+    const hasHeroesB = heroesB?.length > 0;
+
+    if (!hasHeroesA || !hasHeroesB) {
+      const publisherA = hasHeroesA
+        ? heroesA[0].publisher?.name || `Publisher ${publisherAId}`
+        : `Publisher ${publisherAId}`;
+      const publisherB = hasHeroesB
+        ? heroesB[0].publisher?.name || `Publisher ${publisherBId}`
+        : `Publisher ${publisherBId}`;
 
       return {
         publisherA,

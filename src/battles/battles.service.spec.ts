@@ -58,18 +58,22 @@ describe('BattlesService', () => {
       await expect(service.battle(1, 1)).rejects.toThrow(BadRequestException);
     });
 
-    it('should throw if no PUBLISHED heroes in publisher A', async () => {
+    it('should return empty result if no PUBLISHED heroes in publisher A', async () => {
       heroRepository.find.mockResolvedValueOnce([]);
 
-      await expect(service.battle(1, 2)).rejects.toThrow(BadRequestException);
+      const result = await service.battle(1, 2);
+      expect(result.matchResults).toEqual([]);
+      expect(result.overallWinner).toBe('Draw');
     });
 
-    it('should throw if no PUBLISHED heroes in publisher B', async () => {
+    it('should return empty result if no PUBLISHED heroes in publisher B', async () => {
       heroRepository.find
         .mockResolvedValueOnce([mockHeroA])
         .mockResolvedValueOnce([]);
 
-      await expect(service.battle(1, 2)).rejects.toThrow(BadRequestException);
+      const result = await service.battle(1, 2);
+      expect(result.matchResults).toEqual([]);
+      expect(result.overallWinner).toBe('Draw');
     });
 
     it('should return correct battle result with 3 levels', async () => {
