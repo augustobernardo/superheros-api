@@ -80,16 +80,23 @@ export class BattlesService {
       take: MAX_HEROES,
     });
 
-    if (heroesA.length === 0) {
-      throw new BadRequestException(
-        `No PUBLISHED heroes found for publisher A (id: ${publisherAId})`,
-      );
-    }
+    if (heroesA.length === 0 || heroesB.length === 0) {
+      const publisherA = heroesA.length > 0
+        ? heroesA[0].publisher?.name || `Publisher ${publisherAId}`
+        : `Publisher ${publisherAId}`;
+      const publisherB = heroesB.length > 0
+        ? heroesB[0].publisher?.name || `Publisher ${publisherBId}`
+        : `Publisher ${publisherBId}`;
 
-    if (heroesB.length === 0) {
-      throw new BadRequestException(
-        `No PUBLISHED heroes found for publisher B (id: ${publisherBId})`,
-      );
+      return {
+        publisherA,
+        publisherB,
+        matchResults: [],
+        publisherAWins: 0,
+        publisherBWins: 0,
+        overallWinner: 'Draw',
+        meta: { total: 0, page, limit, totalPages: 0 },
+      };
     }
 
     const heroIdsA = heroesA.map((h) => h.id);
