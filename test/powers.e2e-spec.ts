@@ -118,7 +118,10 @@ describe('PowersModule (e2e)', () => {
         cpf: '55555555550',
         email: 'pwr-list@example.com',
       });
-      const heroId = await createTestHero();
+      const heroId = await heroRepo.save({
+        name: 'Pwr List Hero PUBLISHED',
+        status: HeroStatus.PUBLISHED,
+      }).then((h) => h.id);
 
       await powerRepo.save([
         { heroId, name: 'Flight', value: 85 },

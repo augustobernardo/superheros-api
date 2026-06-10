@@ -118,7 +118,10 @@ describe('AttributesModule (e2e)', () => {
         cpf: '55555555559',
         email: 'attr-list@example.com',
       });
-      const heroId = await createTestHero();
+      const heroId = await heroRepo.save({
+        name: 'Attr List Hero PUBLISHED',
+        status: HeroStatus.PUBLISHED,
+      }).then((h) => h.id);
 
       await attributeRepo.save([
         { heroId, name: 'Strength', value: 90 },

@@ -147,7 +147,6 @@ export class HeroesService {
     return this.heroRepository.manager.transaction(async (manager) => {
       const hero = await manager.findOne(Hero, {
         where: { id },
-        lock: { mode: 'pessimistic_write' },
       });
 
       if (!hero) {
