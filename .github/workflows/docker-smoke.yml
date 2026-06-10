@@ -31,6 +31,9 @@ jobs:
           docker compose logs api --tail 50
           exit 1
 
+      - name: Install Node dependencies
+        run: npm ci
+
       - name: Run database smoke test
         run: npm run test:db-smoke
         env:
