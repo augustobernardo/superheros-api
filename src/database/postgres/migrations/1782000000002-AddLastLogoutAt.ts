@@ -5,8 +5,17 @@ export class AddLastLogoutAt1782000000002 implements MigrationInterface {
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
-      ALTER TABLE "users"
-      ADD COLUMN "last_logout_at" TIMESTAMP NULL
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_schema = 'public'
+            AND table_name = 'users'
+            AND column_name = 'last_logout_at'
+        ) THEN
+          ALTER TABLE "users" ADD COLUMN "last_logout_at" TIMESTAMP NULL;
+        END IF;
+      END $$;
     `);
   }
 
