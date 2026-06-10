@@ -1,0 +1,49 @@
+name: Docker Compose Smoke Test
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  docker-smoke:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build and start services
+        run: docker compose up -d --build
+
+      - name: Wait for API to be ready
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:3000/api/v1/health > /dev/null 2>&1; then
+              echo "API is ready"
+              exit 0
+            fi
+            echo "Waiting for API... ($i/30)"
+            sleep 2
+          done
+          echo "API failed to start within timeout"
+          docker compose logs api --tail 50
+          exit 1
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Run database smoke test
+        run: npm run test:db-smoke
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_USERNAME: superheros
+          DB_PASSWORD: superheros_pass
+          DB_DATABASE: superheros_db
+          MONGO_URI: mongodb://localhost:27017/superheros_logs
+
+      - name: Cleanup
+        if: always()
+        run: docker compose down -v
