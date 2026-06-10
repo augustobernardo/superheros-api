@@ -38,7 +38,10 @@ export class AttributesController {
   @ApiOperation({ summary: 'Create an attribute for a hero' })
   @ApiParam({ name: 'heroId', description: 'Hero UUID' })
   @ApiResponse({ status: 201, description: 'Attribute created' })
-  @ApiResponse({ status: 400, description: 'Bad request — invalid data or archived hero' })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request — invalid data or archived hero',
+  })
   @ApiResponse({ status: 401, description: 'Not authenticated' })
   @ApiResponse({ status: 403, description: 'Forbidden — insufficient role' })
   @ApiResponse({ status: 404, description: 'Hero not found' })
@@ -71,7 +74,10 @@ export class AttributesController {
   @ApiParam({ name: 'heroId', description: 'Hero UUID' })
   @ApiParam({ name: 'id', description: 'Attribute UUID' })
   @ApiResponse({ status: 200, description: 'Attribute updated' })
-  @ApiResponse({ status: 400, description: 'Bad request — invalid data or archived hero' })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request — invalid data or archived hero',
+  })
   @ApiResponse({ status: 401, description: 'Not authenticated' })
   @ApiResponse({ status: 403, description: 'Forbidden — insufficient role' })
   @ApiResponse({ status: 404, description: 'Attribute not found' })

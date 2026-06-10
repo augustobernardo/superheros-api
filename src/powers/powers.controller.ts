@@ -38,7 +38,10 @@ export class PowersController {
   @ApiOperation({ summary: 'Create a power for a hero' })
   @ApiParam({ name: 'heroId', description: 'Hero UUID' })
   @ApiResponse({ status: 201, description: 'Power created' })
-  @ApiResponse({ status: 400, description: 'Bad request — invalid data or archived hero' })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request — invalid data or archived hero',
+  })
   @ApiResponse({ status: 401, description: 'Not authenticated' })
   @ApiResponse({ status: 403, description: 'Forbidden — insufficient role' })
   @ApiResponse({ status: 404, description: 'Hero not found' })
@@ -71,7 +74,10 @@ export class PowersController {
   @ApiParam({ name: 'heroId', description: 'Hero UUID' })
   @ApiParam({ name: 'id', description: 'Power UUID' })
   @ApiResponse({ status: 200, description: 'Power updated' })
-  @ApiResponse({ status: 400, description: 'Bad request — invalid data or archived hero' })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request — invalid data or archived hero',
+  })
   @ApiResponse({ status: 401, description: 'Not authenticated' })
   @ApiResponse({ status: 403, description: 'Forbidden — insufficient role' })
   @ApiResponse({ status: 404, description: 'Power not found' })

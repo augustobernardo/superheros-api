@@ -16,12 +16,18 @@ export class UpdateUserDto {
   @IsEmail({}, { message: 'Invalid email format' })
   email?: string;
 
-  @ApiPropertyOptional({ description: 'User biography', example: 'Software developer and superhero enthusiast' })
+  @ApiPropertyOptional({
+    description: 'User biography',
+    example: 'Software developer and superhero enthusiast',
+  })
   @IsOptional()
   @IsString()
   bio?: string;
 
-  @ApiPropertyOptional({ description: 'Profile photo URL', example: 'https://example.com/photo.jpg' })
+  @ApiPropertyOptional({
+    description: 'Profile photo URL',
+    example: 'https://example.com/photo.jpg',
+  })
   @IsOptional()
   @IsString()
   @Length(1, 255)
