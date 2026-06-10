@@ -51,7 +51,7 @@ export class HeroReportFilterDto {
   })
   @IsOptional()
   @IsEnum(Order)
-  order?: Order = Order.ASC;
+  orderDirection?: Order = Order.ASC;
 
   @ApiPropertyOptional({
     description: 'Filter by attribute name',

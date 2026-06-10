@@ -23,114 +23,72 @@ export class ReportsService {
     const limit = filters.limit || 10;
     const skip = (page - 1) * limit;
     const orderBy = filters.orderBy || OrderBy.ATTRIBUTES;
-    const order = filters.order || 'ASC' as const;
+    const order = filters.orderDirection || 'ASC' as const;
 
-    // Start with base query
-    let query = this.heroRepository
+    // Build a dedicated count query (lightweight — no leftJoinAndSelect, no subquery joins)
+    const countQuery = this.heroRepository
+      .createQueryBuilder('hero')
+      .leftJoin('hero.alignment', 'alignment')
+      .leftJoin('hero.publisher', 'publisher')
+      .where('hero.status = :status', { status: HeroStatus.PUBLISHED })
+      .andWhere('hero.deleted_at IS NULL');
+
+    this.applyFilterConditions(countQuery, filters);
+
+    const totalCount = await countQuery.getCount();
+
+    // Build data query with all relations, subqueries, sorting, and pagination
+    const dataQuery = this.heroRepository
       .createQueryBuilder('hero')
       .leftJoinAndSelect('hero.publisher', 'publisher')
       .leftJoinAndSelect('hero.alignment', 'alignment')
-      .leftJoinAndSelect(
-        'hero.attributes',
-        'attributes',
-        'attributes.deleted_at IS NULL',
-      )
+      .leftJoinAndSelect('hero.attributes', 'attributes', 'attributes.deleted_at IS NULL')
       .leftJoinAndSelect('hero.powers', 'powers', 'powers.deleted_at IS NULL')
       .leftJoin(
         (subQuery) =>
           subQuery
-            .select('attribute.hero_id', 'heroId')
-            .addSelect('SUM(attribute.value)', 'totalAttributeValue')
+            .select('attribute.hero_id', 'hid')
+            .addSelect('SUM(attribute.value)', 'total_val')
             .from(Attribute, 'attribute')
             .where('attribute.deleted_at IS NULL')
             .groupBy('attribute.hero_id'),
-        'attributeSum',
-        'attributeSum.heroId = hero.id',
+        'attr_sum',
+        'attr_sum.hid = hero.id',
       )
       .leftJoin(
         (subQuery) =>
           subQuery
-            .select('power.hero_id', 'heroId')
-            .addSelect('SUM(COALESCE(power.value, 0))', 'totalPowerValue')
+            .select('power.hero_id', 'hid')
+            .addSelect('SUM(COALESCE(power.value, 0))', 'total_pow_val')
             .from(Power, 'power')
             .where('power.deleted_at IS NULL')
             .groupBy('power.hero_id'),
-        'powerSum',
-        'powerSum.heroId = hero.id',
-      );
-
-    // Filter: Only PUBLISHED heroes and not deleted
-    query = query
+        'pow_sum',
+        'pow_sum.hid = hero.id',
+      )
       .where('hero.status = :status', { status: HeroStatus.PUBLISHED })
       .andWhere('hero.deleted_at IS NULL');
 
-    // Filter by attribute name if provided
-    if (filters.attribute) {
-      query = query.leftJoin(
-        Attribute,
-        'attrFilter',
-        'attrFilter.hero_id = hero.id AND LOWER(attrFilter.name) ILIKE LOWER(:attrName) AND attrFilter.deleted_at IS NULL',
-        { attrName: `%${filters.attribute}%` },
-      );
-      query = query.andWhere('attrFilter.id IS NOT NULL');
-    }
+    this.applyFilterConditions(dataQuery, filters);
 
-    // Filter by power name if provided
-    if (filters.power) {
-      query = query.leftJoin(
-        Power,
-        'powerFilter',
-        'powerFilter.hero_id = hero.id AND LOWER(powerFilter.name) ILIKE LOWER(:powerName) AND powerFilter.deleted_at IS NULL',
-        { powerName: `%${filters.power}%` },
-      );
-      query = query.andWhere('powerFilter.id IS NOT NULL');
-    }
-
-    // Filter by alignment if provided
-    if (filters.alignment) {
-      query = query.andWhere(
-        'LOWER(alignment.name) ILIKE LOWER(:alignmentName)',
-        { alignmentName: `%${filters.alignment}%` },
-      );
-    }
-
-    // Filter by publisher if provided
-    if (filters.publisher) {
-      query = query.andWhere(
-        'LOWER(publisher.name) ILIKE LOWER(:publisherName)',
-        { publisherName: `%${filters.publisher}%` },
-      );
-    }
-
-    // Sorting
+    // Sorting — use lowercase aliases to match Postgres unquoted identifier folding
     if (orderBy === OrderBy.POWERS) {
-      query = query.addSelect(
-        'COALESCE(powerSum.totalPowerValue, 0)',
-        'totalPowerValue',
-      );
-      query = query.orderBy('totalPowerValue', order);
+      dataQuery
+        .addSelect('COALESCE(pow_sum.total_pow_val, 0)', 'sort_val')
+        .orderBy('sort_val', order);
     } else {
-      query = query.addSelect(
-        'COALESCE(attributeSum.totalAttributeValue, 0)',
-        'totalAttributeValue',
-      );
-      query = query.orderBy('totalAttributeValue', order);
+      dataQuery
+        .addSelect('COALESCE(attr_sum.total_val, 0)', 'sort_val')
+        .orderBy('sort_val', order);
     }
 
-    // Remove duplicate results from joins
-    query = query.distinct(true);
+    dataQuery
+      .addOrderBy('hero.name', 'ASC')
+      .distinct(true)
+      .skip(skip)
+      .take(limit);
 
-    // Secondary sort by name for consistency
-    query = query.addOrderBy('hero.name', 'ASC');
-
-    // Get total count using a simpler distinct query to avoid DISTINCT + JOIN inaccuracies
-    const totalCount = await query.clone().getCount();
-
-    // Apply pagination
-    query = query.skip(skip).take(limit);
-
-    // Get results
-    const heroes = await query.getMany();
+    const heroes = await dataQuery.getMany();
 
     return {
       data: heroes,
@@ -138,5 +96,44 @@ export class ReportsService {
       page,
       limit,
     };
+  }
+
+  private applyFilterConditions(
+    query: import('typeorm').SelectQueryBuilder<Hero>,
+    filters: HeroReportFilterDto,
+  ): void {
+    if (filters.attribute) {
+      query
+        .leftJoin(
+          Attribute,
+          'attr_filter',
+          'attr_filter.hero_id = hero.id AND LOWER(attr_filter.name) ILIKE LOWER(:attrName) AND attr_filter.deleted_at IS NULL',
+          { attrName: `%${filters.attribute}%` },
+        )
+        .andWhere('attr_filter.id IS NOT NULL');
+    }
+
+    if (filters.power) {
+      query
+        .leftJoin(
+          Power,
+          'pow_filter',
+          'pow_filter.hero_id = hero.id AND LOWER(pow_filter.name) ILIKE LOWER(:powName) AND pow_filter.deleted_at IS NULL',
+          { powName: `%${filters.power}%` },
+        )
+        .andWhere('pow_filter.id IS NOT NULL');
+    }
+
+    if (filters.alignment) {
+      query.andWhere('LOWER(alignment.name) ILIKE LOWER(:alignmentName)', {
+        alignmentName: `%${filters.alignment}%`,
+      });
+    }
+
+    if (filters.publisher) {
+      query.andWhere('LOWER(publisher.name) ILIKE LOWER(:publisherName)', {
+        publisherName: `%${filters.publisher}%`,
+      });
+    }
   }
 }
