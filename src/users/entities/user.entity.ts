@@ -49,10 +49,9 @@ export class User {
 
   @Column({
     name: 'last_logout_at',
-    type: 'datetime',
     nullable: true,
   })
-  lastLogoutAt!: Date | null;
+  lastLogoutAt!: Date;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;

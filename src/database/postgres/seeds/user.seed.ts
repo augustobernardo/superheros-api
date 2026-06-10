@@ -14,7 +14,11 @@ export async function runUserSeed(dataSource: DataSource): Promise<void> {
   if (existingAdmin) {
     if (existingAdmin.deletedAt) {
       await userRepository.restore(existingAdmin.id);
+      await userRepository.update(existingAdmin.id, { isActive: true });
       console.log('♻️  Admin user restored (was soft-deleted)');
+    } else if (!existingAdmin.isActive) {
+      await userRepository.update(existingAdmin.id, { isActive: true });
+      console.log('♻️  Admin user reactivated (was inactive)');
     } else {
       console.log('⏭️  Admin user already exists');
     }
