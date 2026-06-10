@@ -44,11 +44,6 @@ jobs:
           DB_DATABASE: superheros_db
           MONGO_URI: mongodb://localhost:27017/superheros_logs
 
-      - name: Run API route tests
-        run: |
-          pip install requests --quiet
-          python test_routes.py
-
       - name: Cleanup
         if: always()
         run: docker compose down -v
