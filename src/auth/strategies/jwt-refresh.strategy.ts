@@ -57,7 +57,7 @@ export class JwtRefreshStrategy extends PassportStrategy(
     if (
       user.lastLogoutAt &&
       payload.iat !== undefined &&
-      payload.iat * 1000 < user.lastLogoutAt.getTime()
+      payload.iat < Math.floor(user.lastLogoutAt.getTime() / 1000)
     ) {
       throw new UnauthorizedException('Refresh token has been revoked');
     }
