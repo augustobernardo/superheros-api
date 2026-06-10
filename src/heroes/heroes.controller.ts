@@ -99,7 +99,7 @@ export class HeroesController {
 
   @Roles(UserRole.ADMIN, UserRole.EDITOR)
   @Patch(':id/publish')
-  @ApiOperation({ summary: 'Publish a hero (validates Req. 19)' })
+  @ApiOperation({ summary: 'Publish a hero' })
   @ApiParam({ name: 'id', description: 'Hero UUID' })
   @ApiResponse({ status: 200, description: 'Hero published' })
   @ApiResponse({ status: 400, description: 'Validation failed' })

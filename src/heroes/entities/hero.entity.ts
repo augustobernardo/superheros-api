@@ -5,12 +5,15 @@ import {
   Entity,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 
 import { Alignment } from './alignment.entity';
+import { Attribute } from '../../attributes/entities/attribute.entity';
 import { HeroStatus } from '../enums/hero-status.enum';
+import { Power } from '../../powers/entities/power.entity';
 import { Publisher } from './publisher.entity';
 
 @Entity('heroes')
@@ -50,6 +53,12 @@ export class Hero {
   @ManyToOne(() => Alignment, { nullable: true })
   @JoinColumn({ name: 'alignment_id' })
   alignment!: Alignment | null;
+
+  @OneToMany(() => Attribute, (attribute) => attribute.hero)
+  attributes!: Attribute[];
+
+  @OneToMany(() => Power, (power) => power.hero)
+  powers!: Power[];
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
